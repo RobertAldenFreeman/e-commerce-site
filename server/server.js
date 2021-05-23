@@ -1,21 +1,8 @@
 const express = require("express");
-const app = express();
 const { MongoClient } = require('mongodb'); // needed to store listings in mongodb
 const mongodb = require('mongodb'); // needed for delete
-app.use(express.json()); // parse body to json, built in middleware
 
 const upload = require('./imageUpload'); // s3 upload
-
-// from HW3 test files
-function makeid(length) {
-  var result = '';
-  var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  var charactersLength = characters.length;
-  for (var i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
-  }
-  return result;
-}
 
 // monogo init
 const url = process.env.MONGO_HOST || 'mongodb://localhost:27017';
@@ -24,6 +11,9 @@ const mongoClient = new MongoClient(url);
 mongoClient.connect((err) => {
   if (err) console.log(err);
   const db = mongoClient.db('test101');
+
+  const app = express();
+  app.use(express.json()); // parse body to json, built in middleware
 
   // gets uploaded file from multer
   app.post('/api/createListing', upload.single("imageFile"), (req, res) => {
@@ -56,7 +46,6 @@ mongoClient.connect((err) => {
     // get and returns all the listings
     db.collection('listings').find({}).toArray()
       .then((result) => {
-        // console.log(result);
         res.send(result);
       });
   });
@@ -79,15 +68,11 @@ mongoClient.connect((err) => {
           // gets listing owner so it doesn't have to be in another endpoint
           db.collection('credentials').findOne({ _id: new mongodb.ObjectID(result.data.userId) })
             .then((result2) => {
-              // console.log(result2);
               result.data.name = result2.data.name;
               result.data.email = result2.data.email;
               console.log(result);
               res.send(result);
             });
-
-          // console.log(result);
-          //res.send(result);
         });
     }
   });
@@ -147,7 +132,7 @@ mongoClient.connect((err) => {
   app.post('/api/login', (req, res) => {
     const email = req.body.email;
     const password = req.body.password;
-    db.collection('credentials').findOne({ 'data.email': `${email}`, 'data.password': `${password}` })
+    db.collection('credentials').findOne({ 'data.email': `${email}` })
       .then((result) => {
         console.log(result);
         res.send(result);
@@ -155,13 +140,6 @@ mongoClient.connect((err) => {
       .catch((e) => console.log(e));
   });
 
-});
-
-// endpoints
-
-module.exports = app;
-
-if (require.main === module) {
   console.log('Starting api app');
   app.listen(4001); // changed to 4001 from 4000
-}
+});
